@@ -134,108 +134,88 @@ def SRT(info, proc_list, burst_times):
         #print(i, proc_list[i])
         #print(burst_times[i])
         n += 1
+def rand_nums(info):
+    # Calculating process information
+    # Initializing process info container
+    proc_list = dict()
 
-
-
-
-
-
-
-
-
-
-
-'''
-Handling args
-'''
-
-## Checking for correct arg len
-if(len(sys.argv) < 8 or len(sys.argv) > 9 ):
-    sys.exit("Usage: seed lambda upper-bound n switch-time alpha time-slice [rr-add]")
-
-## Sanity check of input
-# TODO
-for i in range(1,7):
-    if not (isfloat(sys.argv[i])):
-        sys.exit("ERROR: All required arguments must be valid numbers")
-if(len(sys.argv) == 9):
-    if (sys.argv[8] not in ["BEGINNING", "END"]):
-        sys.exit("ERROR: RR add argument must be 'BEGINNING' or 'END'")
-
-## Setting globals
-# All in info dictionary
-# Key name is "seed", "lambda", etc.
-
-info = dict()
-info["seed"] = int(sys.argv[1])
-info["lambda"] = float(sys.argv[2])
-info["upper-bound"] = int(sys.argv[3])
-info["n"] = int(sys.argv[4])
-info["switch-time"] = int(sys.argv[5])
-info["alpha"] = float(sys.argv[6])
-info["time-slice"] = int(sys.argv[7])
-if(len(sys.argv) == 9):
-    info["rr-add"] = sys.argv[8]
-else:
-    info["rr-add"] = "END"
-
-
-'''
-Calculating process information
-'''
-
-# Initializing process info container
-proc_list = dict()
-
-# Initializing random number generator
-rand_gen = Rand48(0)
-rand_gen.srand(info["seed"])
-
-# Getting label for each process
-for i in range(info["n"]):
-    proc_list[string.ascii_uppercase[i]] = []
-
-
-arrivals = []
-burst_times = dict()
-
-# Calculating arrival time, cpu bursts and cpu/io times for each process
-for proc_name in proc_list:
-    # Calculating arrival time and number of bursts
-    arrival = get_next_rand(info, rand_gen)
-    bursts = get_next_rand(info, rand_gen)
-    arrival_time = int(arrival[1])
-    total_bursts = math.floor(bursts[0] * 100) + 1
-    print("Process {} [NEW] (arrival time {} ms) {} CPU bursts".format(proc_name, arrival_time, total_bursts))
-    arrivals.append(arrival_time)
-    # Getting CPU and IO burst times for each CPU burst
-    burst_times[proc_name] = list()
-    burst_times[proc_name].append(arrival_time)
-    for i in range(total_bursts):
-        cpu = int(get_next_rand(info, rand_gen)[1]) + 1
-        if i < total_bursts-1:
-            io = int(get_next_rand(info, rand_gen)[1]) + 1
-            print("--> CPU burst {} ms --> I/O burst {} ms".format(cpu, io))
-        else:
-            # Accounting for last CPU burst which does not need a calculated IO time
-            print("--> CPU burst {} ms".format(cpu))
-        burst_times[proc_name].append(cpu)
-        burst_times[proc_name].append(io)
+    # Initializing random number generator
+    rand_gen = Rand48(0)
+    rand_gen.srand(info["seed"])
+    # Getting label for each process
+    for i in range(info["n"]):
+        proc_list[string.ascii_uppercase[i]] = []
     
+    arrivals = []
+    burst_times = []
+    
+    # Calculating arrival time, cpu bursts and cpu/io times for each process
+    for proc_name in proc_list:
+        # Calculating arrival time and number of bursts
+        arrival = info["upper-bound"]+1
+        while(arrival>info["upper-bound"]):
+            arrival = math.floor(-math.log(rand_gen.drand())/info["lambda"])
+        proc_list[proc_name].append(arrival)
+        num_of_bursts = int(rand_gen.drand()*100)+1
+        cpu_and_io = []
+        for i in range(num_of_bursts):
+            cpu = int(get_next_rand(info, rand_gen)[1]) + 1
+            if i < num_of_bursts-1:
+                io = int(get_next_rand(info, rand_gen)[1]) + 1
+            else:
+                io = -1
+            cpu_and_io.append([cpu,io])
+        proc_list[proc_name].append(cpu_and_io)
+    return (rand_gen,proc_list)
 
 
-'''
-Simulations for each algorithm (stdout)
-'''
-# First-come, first-served
-#FCFS(info, proc_list)
+if __name__ == "__main__":
+    ## Checking for correct arg len
+    if(len(sys.argv) < 8 or len(sys.argv) > 9 ):
+        sys.exit("Usage: seed lambda upper-bound n switch-time alpha time-slice [rr-add]")
+
+    ## Sanity check of input
+    # TODO
+    for i in range(1,7):
+        if not (isfloat(sys.argv[i])):
+            sys.exit("ERROR: All required arguments must be valid numbers")
+    if(len(sys.argv) == 9):
+        if (sys.argv[8] not in ["BEGINNING", "END"]):
+            sys.exit("ERROR: RR add argument must be 'BEGINNING' or 'END'")
+
+    ## Setting globals
+    # All in info dictionary
+    # Key name is "seed", "lambda", etc.
+
+    info = dict()
+    info["seed"] = int(sys.argv[1])
+    info["lambda"] = float(sys.argv[2])
+    info["upper-bound"] = int(sys.argv[3])
+    info["n"] = int(sys.argv[4])
+    info["switch-time"] = int(sys.argv[5])
+    info["alpha"] = float(sys.argv[6])
+    info["time-slice"] = int(sys.argv[7])
+    if(len(sys.argv) == 9):
+        info["rr-add"] = sys.argv[8]
+    else:
+        info["rr-add"] = "END"
+
+    rand_gen, proc_list = rand_nums(info)
 
 
-print("STARTING SIMULATIONS")
-SRT(info, proc_list, burst_times)
+    '''
+    Simulations for each algorithm (stdout)
+    '''
+    '''
+    # First-come, first-served
+    #FCFS(info, proc_list)
+    print(burst_times)
 
-'''
-Stats for each algorithm (output file)
-'''
+    print("STARTING SIMULATIONS")
+    SRT(info, proc_list, burst_times)
+    '''
+    '''
+    Stats for each algorithm (output file)
+    '''
 
-## Printing stats to output file
+    ## Printing stats to output file
