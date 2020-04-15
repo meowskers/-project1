@@ -76,9 +76,9 @@ def get_next_rand(info, r):
         next_rand_dist = log_lambda(next_rand, info)
     return(next_rand, next_rand_dist)
 
-# info is globals
-# proc-info is process information
+# Helper function to make the queue into a string for printing purposes
 def q_to_str(q):
+
     if len(q) == 0:
         return "[Q <empty>]"
     temp = "[Q"
@@ -99,8 +99,7 @@ def FCFS(info):
     
     while(len(finished)!=0):
         ## CHECKING IF CURRENT BURST IS FINISHED
-        if in_cpu != "*":
-            
+        if in_cpu != "*": 
             #print(in_cpu, proc_list[in_cpu][1])
             ## IF CURRENT PROCESS IS DONE
             if proc_list[in_cpu][1][0][0] <= 1:
@@ -144,7 +143,7 @@ def FCFS(info):
                 arrival_list.remove(arrival)
                 if(not time >999):
                     print("time "+str(time)+"ms: Process "+arrival+" arrived; added to read queue "+q_to_str(q))
-        ## 
+        ## DEALING WITH CONTEXT SWITCHING
         if in_cpu == "*":
             if len(q) != 0:
                 if context_switch <= 0:
@@ -154,8 +153,6 @@ def FCFS(info):
                     q.remove(q[0])
                 else: 
                     context_switch = context_switch -1
-                
-
         time = time + 1
     print("time "+str(int(time-1+(info["switch-time"]/2)))+"ms: Simulator ended for FCFS [Q <empty>]")
 
@@ -178,6 +175,12 @@ def SRT(info, proc_list, burst_times):
         #print(i, proc_list[i])
         #print(burst_times[i])
         n += 1
+        
+
+## Calculates all random burst times returns a dictionary
+## Key is a letter ie. A, B, C ...
+## Value is [[arrival time][[burst time, io time], [burst time, io time], ...number of bursts... [burst time, -1]]
+## Tau is if it to include tau in print time (Might need to rework it)
 def rand_nums(info,tau):
     # Calculating process information
     # Initializing process info container
