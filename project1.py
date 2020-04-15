@@ -78,12 +78,86 @@ def get_next_rand(info, r):
 
 # info is globals
 # proc-info is process information
-
+def q_to_str(q):
+    if len(q) == 0:
+        return "[Q <empty>]"
+    temp = "[Q"
+    for i in q:
+        temp = temp + " " +i
+    temp = temp +"]"
+    return temp
 def FCFS(info):
     time = 0
+    q = []
+    in_cpu = "*"
+    in_io = []
+    context_switch = info["switch-time"]/2
     rand_gen, proc_list = rand_nums(info,False)
-    print("time: 0ms: Simulator started for FCFS [Q <empty>]")
+    arrival_list = list(proc_list.keys())
+    print("time 0ms: Simulator started for FCFS [Q <empty>]")
+    finished = list(proc_list.keys())
+    
+    while(len(finished)!=0):
+        ## CHECKING IF CURRENT BURST IS FINISHED
+        if in_cpu != "*":
+            
+            #print(in_cpu, proc_list[in_cpu][1])
+            ## IF CURRENT PROCESS IS DONE
+            if proc_list[in_cpu][1][0][0] <= 1:
+                if proc_list[in_cpu][1][0][1] == -1:
+                    print("time "+str(time)+"ms: Process "+in_cpu+" terminated "+q_to_str(q))
+                    finished.remove(in_cpu)
+                    in_cpu = "*"
+                    context_switch =  info["switch-time"]
+                else:
+                    if len(proc_list[in_cpu][1]) ==1:
+                        if(not time >999):
+                            print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst; 1 burst to go "+q_to_str(q))
+                    else:
+                        if(not time >999):
+                            print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst;"+str(len(proc_list[in_cpu][1]))+" bursts to go "+q_to_str(q))
+                    if(not time >999):
+                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(proc_list[in_cpu][1][0][1]+time)+"ms "+q_to_str(q))
+                    context_switch = info["switch-time"]
+                    in_io.append(in_cpu)
+                    in_io.sort()
+                    in_cpu = "*"
+            ## IF CURRENT PROCESS IS NOT DONE
+            else:
+                proc_list[in_cpu][1][0][0] = proc_list[in_cpu][1][0][0] -1
+        ## CHECKING FOR I/O 
+        for i in in_io:
+            if proc_list[i][1][0][1]<= 0:
+                if(not time >999):
+                    print("time "+str(time)+"ms: Process "+i+" completed I/O; added to ready queue "+q_to_str(q))
+                proc_list[i][1].pop(0)
+                #print(i,proc_list[i][1]) 
+                in_io.remove(i)
+                q.append(i)
+            else:
+                proc_list[i][1][0][1] = proc_list[i][1][0][1] - 1
+                
+        ### CHECKING ARRIVAL
+        for arrival in arrival_list:
+            if proc_list[arrival][0] == time:
+                q.append(arrival)
+                arrival_list.remove(arrival)
+                if(not time >999):
+                    print("time "+str(time)+"ms: Process "+arrival+" arrived; added to read queue "+q_to_str(q))
+        ## 
+        if in_cpu == "*":
+            if len(q) != 0:
+                if context_switch <= 0:
+                    in_cpu = q[0]
+                    if(not time >999):
+                        print("time "+str(time)+"ms: Process "+q[0]+" started using the CPU for "+str(proc_list[q[0]][1][0][0])+"ms burst " + q_to_str(q))
+                    q.remove(q[0])
+                else: 
+                    context_switch = context_switch -1
+                
 
+        time = time + 1
+    print("time "+str(int(time-1+(info["switch-time"]/2)))+"ms: Simulator ended for FCFS [Q <empty>]")
 
 
 
