@@ -78,43 +78,13 @@ def get_next_rand(info, r):
 
 # info is globals
 # proc-info is process information
-'''
-def FCFS(info, proc_list):
+
+def FCFS(info):
     time = 0
+    rand_gen, proc_list = rand_nums(info,False)
     print("time: 0ms: Simulator started for FCFS [Q <empty>]")
-    rand_gen = Rand48(0)
-    rand_gen.srand(info["seed"])
-    proc_info = dict()
-    proc_objs = list()
-    # generating arrival time and number of cpu bursts
-    for proc_name in proc_list:
-        # proc_info is dictionary where:
-        # -- key: process name
-        # -- value: [arrival_time, [(cpu, io), (cpu, io), ...]]
-        proc_info[proc_name] = list()
-        # Calculating arrival time and number of bursts
-        arrival = get_next_rand(info, rand_gen)
-        bursts = get_next_rand(info, rand_gen)
-        arrival_time = int(arrival[1])
-        # Making process object in proc_objs
-        proc_objs.append(Process(proc_name, arrival_time, "FCFS"))
-        # Recording arrival time in proc_info
-        proc_info[proc_name].append(arrival_time)
-        proc_info[proc_name].append([])
-        # Number of bursts
-        total_bursts = math.floor(bursts[0] * 100) + 1
-        # Getting CPU and IO burst times for each CPU burst
-        for i in range(total_bursts):
-            cpu = int(get_next_rand(info, rand_gen)[1]) + 1
-            io = 0
-            if i < total_bursts-1:
-                io = int(get_next_rand(info, rand_gen)[1]) + 1
-            proc_info[proc_name][1].append(Burst(cpu, io))
-    # Getting processes in order of arrival
-    proc_objs.sort()
-    for p in proc_objs:
-        print("time {}ms: Process {} arrived and added to the ready queue".format(p.arr_time, p.name))
-'''
+
+
 
 
 def SRT(info, proc_list, burst_times):
@@ -134,7 +104,7 @@ def SRT(info, proc_list, burst_times):
         #print(i, proc_list[i])
         #print(burst_times[i])
         n += 1
-def rand_nums(info):
+def rand_nums(info,tau):
     # Calculating process information
     # Initializing process info container
     proc_list = dict()
@@ -166,6 +136,10 @@ def rand_nums(info):
                 io = -1
             cpu_and_io.append([cpu,io])
         proc_list[proc_name].append(cpu_and_io)
+        if tau:
+            print("Process "+proc_name+" [NEW] (arrival time "+str(arrival)+" ms) "+str(num_of_bursts)+" CPU bursts (tau "+str(1/info["lambda"])+"ms)")
+        else:
+            print("Process "+proc_name+" [NEW] (arrival time "+str(arrival)+" ms) "+str(num_of_bursts)+" CPU bursts")
     return (rand_gen,proc_list)
 
 
@@ -200,7 +174,7 @@ if __name__ == "__main__":
     else:
         info["rr-add"] = "END"
 
-    rand_gen, proc_list = rand_nums(info)
+    FCFS(info)
 
 
     '''
