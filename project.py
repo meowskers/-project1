@@ -55,6 +55,7 @@ def FCFS(info):
     q = []
     in_cpu = "*"
     in_io = []
+    io_context = dict()
     context_switch = info["switch-time"]/2
     rand_gen, proc_list = rand_nums(info,False)
     arrival_list = list(proc_list.keys())
@@ -77,11 +78,12 @@ def FCFS(info):
                             print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst; 1 burst to go "+q_to_str(q))
                     else:
                         if(not time >999):
-                            print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst;"+str(len(proc_list[in_cpu][1]))+" bursts to go "+q_to_str(q))
+                            print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst;"+str(len(proc_list[in_cpu][1])-1)+" bursts to go "+q_to_str(q))
                     if(not time >999):
-                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(proc_list[in_cpu][1][0][1]+time)+"ms "+q_to_str(q))
-                    context_switch = info["switch-time"]
+                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(proc_list[in_cpu][1][0][1]+time+int(info["switch-time"]/2))+"ms "+q_to_str(q))
+                    context_switch = int(info["switch-time"]/2)
                     in_io.append(in_cpu)
+                    io_context[in_cpu] = int(info["switch-time"]/2)
                     in_io.sort()
                     in_cpu = "*"
             ## IF CURRENT PROCESS IS NOT DONE
@@ -90,12 +92,14 @@ def FCFS(info):
         ## CHECKING FOR I/O 
         for i in in_io:
             if proc_list[i][1][0][1]<= 0:
-                if(not time >999):
-                    print("time "+str(time)+"ms: Process "+i+" completed I/O; added to ready queue "+q_to_str(q))
-                proc_list[i][1].pop(0)
-                #print(i,proc_list[i][1]) 
-                in_io.remove(i)
-                q.append(i)
+                if io_context[i] <= 0:
+                    q.append(i)
+                    if(not time >999):
+                        print("time "+str(time)+"ms: Process "+i+" completed I/O; added to ready queue "+q_to_str(q))
+                    proc_list[i][1].pop(0)
+                    in_io.remove(i)
+                else:
+                    io_context[i] = io_context[i] -1
             else:
                 proc_list[i][1][0][1] = proc_list[i][1][0][1] - 1
                 
@@ -105,15 +109,15 @@ def FCFS(info):
                 q.append(arrival)
                 arrival_list.remove(arrival)
                 if(not time >999):
-                    print("time "+str(time)+"ms: Process "+arrival+" arrived; added to read queue "+q_to_str(q))
+                    print("time "+str(time)+"ms: Process "+arrival+" arrived; added to ready queue "+q_to_str(q))
         ## DEALING WITH CONTEXT SWITCHING
         if in_cpu == "*":
             if len(q) != 0:
                 if context_switch <= 0:
                     in_cpu = q[0]
-                    if(not time >999):
-                        print("time "+str(time)+"ms: Process "+q[0]+" started using the CPU for "+str(proc_list[q[0]][1][0][0])+"ms burst " + q_to_str(q))
                     q.remove(q[0])
+                    if(not time >999):
+                        print("time "+str(time)+"ms: Process "+in_cpu+" started using the CPU for "+str(proc_list[in_cpu][1][0][0])+"ms burst " + q_to_str(q))
                 else: 
                     context_switch = context_switch -1
         time = time + 1
@@ -283,4 +287,4 @@ if __name__ == "__main__":
         info["rr-add"] = "END"
 
     FCFS(info)
-    RR(info)
+    #RR(info)
