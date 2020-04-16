@@ -270,7 +270,7 @@ def RR(info):
     print("time "+str(int(time-1+(info["switch-time"]/2)))+"ms: Simulator ended for RR [Q <empty>]")
     print("##",n_bursts)
     cpu_burst_time = total_burst_time/n_bursts
-    wait_time = (wait_time - (switches*2))/n_bursts
+    wait_time = (wait_time - (switches*2)-preemptions)/n_bursts
     turnaround_time = 0
     for i in turn:
         turnaround_time = turnaround_time + (turn[i]-proc_list[i][0])
@@ -378,7 +378,7 @@ if __name__ == "__main__":
     burst_time,RR_wait,RR_turnaround, RR_switches, RR_preemptions = RR(info)
     print("Algo RR")
     print("CPU burst",round(burst_time,3))
-    print("average wait",round(RR_wait,3))
+    print("average wait",round(RR_wait,4))
     print("turnaround",round(RR_turnaround,3))
     print("switches",RR_switches)
     print("preemptions",RR_preemptions)
