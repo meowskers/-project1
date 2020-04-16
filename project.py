@@ -55,53 +55,64 @@ def FCFS(info):
     q = []
     in_cpu = "*"
     in_io = []
-    io_context = dict()
-    context_switch = info["switch-time"]/2
+    wait_time = 0
+    turnaround_time = 0
+    switches = 1
+    preemptions = 0
+    full = False
+    context_switch = int(info["switch-time"]/2)
     rand_gen, proc_list = rand_nums(info,False)
     arrival_list = list(proc_list.keys())
+    turn = dict() 
+    n_bursts = 0
+    total_burst_time = 0
+    for i in proc_list:
+        for j in proc_list[i][1]:
+            total_burst_time = total_burst_time + j[0]
+        n_bursts = n_bursts+ len(proc_list[i][1])
+    
     print("time 0ms: Simulator started for FCFS [Q <empty>]")
     finished = list(proc_list.keys())
     while(len(finished)!=0):
+        wait_time = wait_time + len(q)
         ## CHECKING IF CURRENT BURST IS FINISHED
-        if in_cpu != "*": 
-            #print(in_cpu, proc_list[in_cpu][1])
+        if in_cpu != "*" and in_cpu != "@": 
             ## IF CURRENT PROCESS IS DONE
             if proc_list[in_cpu][1][0][0] <= 1:
+                # LAST BURST
                 if proc_list[in_cpu][1][0][1] == -1:
                     print("time "+str(time)+"ms: Process "+in_cpu+" terminated "+q_to_str(q))
+                    turn[in_cpu] = time
                     finished.remove(in_cpu)
-                    in_cpu = "*"
-                    context_switch =  info["switch-time"]
+                    in_cpu = "@"
+                    context_switch =  int(info["switch-time"]/2)
                 else:
                     if len(proc_list[in_cpu][1]) ==1:
-                        if(not time >999):
+                        if(not time >999 or full):
                             print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst; 1 burst to go "+q_to_str(q))
                     else:
-                        if(not time >999):
+                        if(not time >999 or full):
                             print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst;"+str(len(proc_list[in_cpu][1])-1)+" bursts to go "+q_to_str(q))
-                    if(not time >999):
-                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(proc_list[in_cpu][1][0][1]+time+int(info["switch-time"]/2))+"ms "+q_to_str(q))
-                    context_switch = int(info["switch-time"]/2)
+                    temp = proc_list[in_cpu][1][0][1]+time+int(info["switch-time"]/2)
+                    if(not time >999 or full):
+                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(temp)+"ms "+q_to_str(q))
+                    proc_list[in_cpu][1][0][1] =  temp
                     in_io.append(in_cpu)
-                    io_context[in_cpu] = int(info["switch-time"]/2)
                     in_io.sort()
-                    in_cpu = "*"
+                    in_cpu = "@"
+                    context_switch =  int(info["switch-time"]/2)
             ## IF CURRENT PROCESS IS NOT DONE
             else:
                 proc_list[in_cpu][1][0][0] = proc_list[in_cpu][1][0][0] -1
         ## CHECKING FOR I/O 
         for i in in_io:
-            if proc_list[i][1][0][1]<= 0:
-                if io_context[i] <= 0:
-                    q.append(i)
-                    if(not time >999):
-                        print("time "+str(time)+"ms: Process "+i+" completed I/O; added to ready queue "+q_to_str(q))
-                    proc_list[i][1].pop(0)
-                    in_io.remove(i)
-                else:
-                    io_context[i] = io_context[i] -1
-            else:
-                proc_list[i][1][0][1] = proc_list[i][1][0][1] - 1
+            ##print("##",i,"##",proc_list[i][1][0][1])
+            if proc_list[i][1][0][1]== time:
+                q.append(i)
+                if(not time >999 or full):
+                    print("time "+str(time)+"ms: Process "+i+" completed I/O; added to ready queue "+q_to_str(q))
+                proc_list[i][1].pop(0)
+                in_io.remove(i)
                 
         ### CHECKING ARRIVAL
         for arrival in arrival_list:
@@ -116,83 +127,156 @@ def FCFS(info):
                 if context_switch <= 0:
                     in_cpu = q[0]
                     q.remove(q[0])
-                    if(not time >999):
+                    context_switch = int(info["switch-time"]/2)
+                    if(not time >999 or full):
                         print("time "+str(time)+"ms: Process "+in_cpu+" started using the CPU for "+str(proc_list[in_cpu][1][0][0])+"ms burst " + q_to_str(q))
                 else: 
                     context_switch = context_switch -1
+        if in_cpu == "@":
+            if context_switch <= 1:
+                in_cpu = "*"
+                switches = switches+1
+                context_switch = int(info["switch-time"]/2)
+            else:
+                context_switch = context_switch -1
         time = time + 1
     print("time "+str(int(time-1+(info["switch-time"]/2)))+"ms: Simulator ended for FCFS [Q <empty>]")
+    print("##",n_bursts)
+    cpu_burst_time = total_burst_time/n_bursts
+    wait_time = (wait_time - (switches*2))/n_bursts
+    turnaround_time = 0
+    for i in turn:
+        turnaround_time = turnaround_time + (turn[i]-proc_list[i][0])
+    turnaround_time = turnaround_time/n_bursts
+    return cpu_burst_time,wait_time, turnaround_time, switches, preemptions
+# ~~~~~~~~~~~~~~
 def RR(info):
     time = 0
     q = []
     in_cpu = "*"
     in_io = []
-    context_switch = info["switch-time"]/2
+    wait_time = 0
+    turnaround_time = 0
+    switches = 1
+    preemptions = 0
+    full = True
+    context_switch = int(info["switch-time"]/2)
     rand_gen, proc_list = rand_nums(info,False)
     arrival_list = list(proc_list.keys())
-    print("time 0ms: Simulator started for FCFS [Q <empty>]")
+    turn = dict() 
+    n_bursts = 0
+    special = "*"
+    total_burst_time = 0
+    for i in proc_list:
+        for j in proc_list[i][1]:
+            total_burst_time = total_burst_time + j[0]
+        n_bursts = n_bursts+ len(proc_list[i][1])
+    rr = info["time-slice"]
+    print("time 0ms: Simulator started for RR [Q <empty>]")
     finished = list(proc_list.keys())
     while(len(finished)!=0):
+        wait_time = wait_time + len(q)
         ## CHECKING IF CURRENT BURST IS FINISHED
-        if in_cpu != "*": 
-            #print(in_cpu, proc_list[in_cpu][1])
+        if in_cpu != "*" and in_cpu != "@": 
             ## IF CURRENT PROCESS IS DONE
             if proc_list[in_cpu][1][0][0] <= 1:
+                # LAST BURST
                 if proc_list[in_cpu][1][0][1] == -1:
                     print("time "+str(time)+"ms: Process "+in_cpu+" terminated "+q_to_str(q))
+                    turn[in_cpu] = time
                     finished.remove(in_cpu)
-                    in_cpu = "*"
-                    context_switch =  info["switch-time"]
+                    in_cpu = "@"
+                    context_switch =  int(info["switch-time"]/2)
+                    rr = info["time-slice"]
                 else:
                     if len(proc_list[in_cpu][1]) ==1:
-                        if(not time >999):
+                        if(not time >999 or full):
                             print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst; 1 burst to go "+q_to_str(q))
                     else:
-                        if(not time >999):
-                            print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst;"+str(len(proc_list[in_cpu][1]))+" bursts to go "+q_to_str(q))
-                    if(not time >999):
-                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(proc_list[in_cpu][1][0][1]+time)+"ms "+q_to_str(q))
-                    context_switch = info["switch-time"]
+                        if(not time >999 or full):
+                            print("time "+str(time)+"ms: Process "+in_cpu+" completed a CPU burst;"+str(len(proc_list[in_cpu][1])-1)+" bursts to go "+q_to_str(q))
+                    temp = proc_list[in_cpu][1][0][1]+time+int(info["switch-time"]/2)
+                    if(not time > 999 or full):
+                        print("time "+str(time)+"ms: Process "+in_cpu+" switching out of CPU; will block on I/O until time "+str(temp)+"ms "+q_to_str(q))
+                    proc_list[in_cpu][1][0][1] =  temp
                     in_io.append(in_cpu)
                     in_io.sort()
-                    in_cpu = "*"
-            ## IF CURRENT PROCESS IS NOT DONE
+                    in_cpu = "@"
+                    rr = info["time-slice"]
+                    context_switch =  int(info["switch-time"]/2)
+            ## IF TIME SLICE IS DONE
+            elif rr <= 1 and len(q) != 0:
+                proc_list[in_cpu][1][0][0] = proc_list[in_cpu][1][0][0] -1
+                preemptions = preemptions + 1
+                if(not time > 999 or full):
+                    print("time "+str(time)+"ms: Time slice expired; Process "+in_cpu+" preempted with "+str(proc_list[in_cpu][1][0][0])+"ms to go "+q_to_str(q))
+                rr = info["time-slice"]
+                special = in_cpu
+                in_cpu = "@"
+            ## IF TIME SLICE IS DONE BUT HAS AN EMPTY QUEUE
+            elif rr<= 1 and len(q) == 0:
+                if(not time > 999 or full):
+                    print("time "+str(time)+"ms: Time slice expired; no preemption because ready queue is empty "+q_to_str(q))
+                rr = info["time-slice"]
+                proc_list[in_cpu][1][0][0] = proc_list[in_cpu][1][0][0] -1
             else:
                 proc_list[in_cpu][1][0][0] = proc_list[in_cpu][1][0][0] -1
+                rr = rr - 1
         ## CHECKING FOR I/O 
+        
         for i in in_io:
-            if proc_list[i][1][0][1]<= 0:
-                if(not time >999):
+            if proc_list[i][1][0][1]<= time:
+                if info["rr-add"]=="END":
+                    q.append(i)
+                else:
+                    q.insert(0,i)
+                if(not time >999 or full):
                     print("time "+str(time)+"ms: Process "+i+" completed I/O; added to ready queue "+q_to_str(q))
                 proc_list[i][1].pop(0)
-                #print(i,proc_list[i][1]) 
                 in_io.remove(i)
-                q.append(i)
-            else:
-                proc_list[i][1][0][1] = proc_list[i][1][0][1] - 1
                 
         ### CHECKING ARRIVAL
         for arrival in arrival_list:
             if proc_list[arrival][0] == time:
-                q.append(arrival)
+                if info["rr-add"]=="END":
+                    q.append(arrival)
+                else:
+                    q.insert(0,arrival)
                 arrival_list.remove(arrival)
                 if(not time >999):
-                    print("time "+str(time)+"ms: Process "+arrival+" arrived; added to read queue "+q_to_str(q))
+                    print("time "+str(time)+"ms: Process "+arrival+" arrived; added to ready queue "+q_to_str(q))
         ## DEALING WITH CONTEXT SWITCHING
         if in_cpu == "*":
             if len(q) != 0:
                 if context_switch <= 0:
                     in_cpu = q[0]
-                    if(not time >999):
-                        print("time "+str(time)+"ms: Process "+q[0]+" started using the CPU for "+str(proc_list[q[0]][1][0][0])+"ms burst " + q_to_str(q))
                     q.remove(q[0])
+                    context_switch = int(info["switch-time"]/2)
+                    if(not time >999 or full):
+                        print("time "+str(time)+"ms: Process "+in_cpu+" started using the CPU for "+str(proc_list[in_cpu][1][0][0])+"ms burst " + q_to_str(q))
                 else: 
                     context_switch = context_switch -1
+        if in_cpu == "@":
+            if context_switch <= 1:
+                in_cpu = "*"
+                switches = switches+1
+                if special != "*":
+                    q.append(special)
+                    special = "*"
+                context_switch = int(info["switch-time"]/2)
+            else:
+                context_switch = context_switch -1
         time = time + 1
-    print("time "+str(int(time-1+(info["switch-time"]/2)))+"ms: Simulator ended for FCFS [Q <empty>]")
-
-
-
+    print("time "+str(int(time-1+(info["switch-time"]/2)))+"ms: Simulator ended for RR [Q <empty>]")
+    print("##",n_bursts)
+    cpu_burst_time = total_burst_time/n_bursts
+    wait_time = (wait_time - (switches*2))/n_bursts
+    turnaround_time = 0
+    for i in turn:
+        turnaround_time = turnaround_time + (turn[i]-proc_list[i][0])
+    turnaround_time = turnaround_time/n_bursts
+    return cpu_burst_time,wait_time, turnaround_time, switches, preemptions
+# ~~~~~~~~~
 def SRT(info, proc_list, burst_times):
     time = 0
     print()
@@ -253,8 +337,6 @@ def rand_nums(info,tau):
         else:
             print("Process "+proc_name+" [NEW] (arrival time "+str(arrival)+" ms) "+str(num_of_bursts)+" CPU bursts")
     return (rand_gen,proc_list)
-
-
 if __name__ == "__main__":
     ## Checking for correct arg len
     if(len(sys.argv) < 8 or len(sys.argv) > 9 ):
@@ -286,5 +368,17 @@ if __name__ == "__main__":
     else:
         info["rr-add"] = "END"
 
-    FCFS(info)
-    #RR(info)
+    burst_time,FCFS_wait, FCFS_turnaround, FCFS_switches, FCFS_preemptions = FCFS(info)
+    print("Algo FCFS")
+    print("CPU burst",round(burst_time,3))
+    print("average wait",round(FCFS_wait,3))
+    print("turnaround",round(FCFS_turnaround,3))
+    print("switches",FCFS_switches)
+    print("preemptions",FCFS_preemptions)
+    burst_time,RR_wait,RR_turnaround, RR_switches, RR_preemptions = RR(info)
+    print("Algo RR")
+    print("CPU burst",round(burst_time,3))
+    print("average wait",round(RR_wait,3))
+    print("turnaround",round(RR_turnaround,3))
+    print("switches",RR_switches)
+    print("preemptions",RR_preemptions)
